@@ -1,0 +1,440 @@
+---
+title: "Clinical reporting with `rtables`"
+author: "Pawel Rucki"
+date: "Oct 2022, Basel"
+format:
+  revealjs: 
+    theme: dark
+editor: visual
+---
+
+## Hello!
+
+![](./img/hello.jpg)
+
+## About me
+
+Pawel Rucki
+
+Principal Data Scientist \@ Roche
+
+Chief engineer of NEST project
+
+[{{< fa brands github >}} /pawelru](https://github.com/pawelru)
+
+[{{< fa brands linkedin-in >}} /in/pawel-rucki](www.linkedin.com/in/pawel-rucki)
+
+## Acknowledgments
+
+Gabriel Becker
+
+Adrian Waddell
+
+F. Hoffmann-La Roche
+
+## Why? Porblem statement.
+
+Health authority requires specific form of tables for regulatory submissions. This includes but not limiting to:
+
+-   multiple values in a single cell with flexible formatting, e.g. `1.23`, `1.23 (45.67%)`, `12.34 - 56.78`
+-   pagination when *printing*
+-   titles and footnotes
+-   cross-checking, i.e. compare `x[1, 2]` with `y[2, 3]`
+-   multiple output form, e.g. txt, pdf, html
+
+## Quick example (demographic table)
+
+```{r}
+library(rtables)
+library(dplyr)
+
+n <- 400
+set.seed(1)
+df <- tibble(
+  arm = factor(sample(c("Arm A", "Arm B"), n, replace = TRUE), levels = c("Arm A", "Arm B")),
+  country = factor(sample(c("CAN", "USA"), n, replace = TRUE, prob = c(.55, .45)), levels = c("CAN", "USA")),
+  gender = factor(sample(c("Female", "Male"), n, replace = TRUE), levels = c("Female", "Male")),
+  handed = factor(sample(c("Left", "Right"), n, prob = c(.6, .4), replace = TRUE), levels = c("Left", "Right")),
+  age = rchisq(n, 30) + 10
+) %>% mutate(
+  weight = 35 * rnorm(n, sd = .5) + ifelse(gender == "Female", 140, 180)
+)
+
+basic_table() %>%
+  split_cols_by("arm") %>%
+  split_cols_by("gender") %>%
+  add_colcounts() %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  split_rows_by("handed") %>%
+  summarize_row_groups() %>%
+  analyze("age", afun = mean, format = "xx.x") %>%
+  build_table(df)
+```
+
+(dummy data used)
+
+## `rtables`
+
+Development started in \<2017.
+
+Built internally @Roche and now fully open source package (Apache 2.0) available on both GH and CRAN.
+
+It provides a framework for declaring complex multi-level tabulations and then applying them to data. This framework models both tabulation and the resulting tables as **hierarchical, tree-like objects**.
+
+Currently `rtables` covers all internal needs for regulatory tables @Roche and its being used in E2E clinical reporting in R.
+
+## 2-step approach
+
+1.  Declare the layout
+
+```{r}
+#| echo: true
+#| code-line-numbers: "1"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  analyze("age", afun = mean, format = "xx.x")
+```
+
+2.  Apply it on the data
+
+```{r}
+#| echo: true
+build_table(l, df)
+```
+
+Note that layout object is fully reusable on a different data!
+
+## Layout definition
+
+-   Splitting:
+    -   row split
+    -   column split
+-   Summarize groups
+-   Analyze variables
+
+## Example
+
+Dummy data used in this example.
+
+```{r}
+#| echo: true
+head(df)
+```
+
+## Example (cont.)
+
+One column split per `arm`, analyse `age` and output a mean.
+
+```{r}
+#| echo: true
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+.
+
+```{r}
+#| echo: true
+df %>% group_by(arm) %>% summarise(mean(age))
+```
+
+## Example (cont.)
+
+Add second level column split by `gender`.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "3"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_cols_by("gender") %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+.
+
+```{r}
+#| echo: true
+df %>% group_by(arm, gender) %>% summarise(mean(age))
+```
+
+## Example (cont.)
+
+Add row split by `country`.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "4"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_cols_by("gender") %>%
+  split_rows_by("country") %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+## Example (cont.)
+
+Add group information.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "5"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_cols_by("gender") %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+## Example (cont.)
+
+Add second level row split by `handed`.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "6"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_cols_by("gender") %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  split_rows_by("handed") %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+## Example (cont.)
+
+Add group information.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "7"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_cols_by("gender") %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  split_rows_by("handed") %>%
+  summarize_row_groups() %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+## Example
+
+Customize analyse function
+
+```{r}
+#| echo: true
+#| code-line-numbers: "6,7"
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  analyze("age", 
+          afun = function(x) {c(IQR(x), quantile(x, 1/4), quantile(x, 3/4))}, 
+          format = "xx.x (xx.x - xx.x)")
+
+build_table(l, df)
+```
+
+## Example
+
+Titles and footnotes.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "1"
+l <- basic_table(title = "Custom title", subtitles = "Custom Subtitle", main_footer = "Custom Footer") %>%
+  split_cols_by("arm") %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+build_table(l, df)
+```
+
+## Example
+
+Path based accessors.
+
+```{r}
+#| echo: true
+#| code-fold: true
+l <- basic_table() %>%
+  split_cols_by("arm") %>%
+  split_rows_by("country") %>%
+  summarize_row_groups() %>%
+  analyze("age", afun = mean, format = "xx.x")
+
+tbl <- build_table(l, df)
+tbl
+```
+
+```{r}
+#| echo: true
+value_at(tbl, c("country", "USA", "age", "mean"), c("arm", "Arm B"))
+cell_values(tbl, c("country", "USA", "@content"), c("arm", "Arm B"))
+```
+
+## Example
+
+Export to txt + pagination.
+
+```{r}
+#| echo: true
+#| code-line-numbers: "5"
+tbl <- basic_table(title = "Custom title") %>%
+  split_cols_by("ARM") %>%
+  analyze(c("AGE", "BMRKR2", "COUNTRY")) %>%
+  build_table(ex_adsl)
+cat(export_as_txt(tbl, file = NULL, paginate = TRUE, lpp = 10))
+```
+
+## Extreme example - Adverse Events
+
+```{r style="font-size: x-large;"}
+#| echo: true
+#| code-fold: true
+library(scda)
+adsl <- synthetic_cdisc_dataset("rcd_2022_06_27", "adsl")
+adae <- synthetic_cdisc_dataset("rcd_2022_06_27", "adae")
+
+library(tern)
+adsl <- df_explicit_na(adsl)
+adae <- df_explicit_na(adae)
+
+split_fun <- drop_split_levels
+
+lyt <- basic_table() %>%
+    split_cols_by(var = "ARM") %>%
+    add_colcounts() %>%
+    add_overall_col(label = "All Patients") %>%
+    summarize_num_patients(
+        var = "USUBJID",
+        .stats = c("unique", "nonunique"),
+        .labels = c(
+            unique = "Total number of patients with at least one adverse event",
+            nonunique = "Overall total number of events"
+        )
+    ) %>%
+    split_rows_by(
+        "AEBODSYS",
+        child_labels = "visible",
+        nested = FALSE,
+        indent_mod = -1L,
+        split_fun = split_fun,
+        label_pos = "topleft",
+        split_label = obj_label(adae$AEBODSYS)
+    ) %>%
+    summarize_num_patients(
+        var = "USUBJID",
+        .stats = c("unique", "nonunique"),
+        .labels = c(
+            unique = "Total number of patients with at least one adverse event",
+            nonunique = "Total number of events"
+        )
+    ) %>%
+    count_occurrences(
+        vars = "AEDECOD",
+        .indent_mods = -1L
+    ) %>%
+    append_varlabels(adae, "AEDECOD", indent = 1L)
+
+result <- build_table(
+    lyt,
+    df = adae,
+    alt_counts_df = adsl
+)
+
+result
+```
+
+## Extreme example - Laboratory Test Results by Visit
+
+```{r style="font-size: x-large;"}
+#| echo: true
+#| code-fold: true
+library(scda)
+adsl <- synthetic_cdisc_dataset("rcd_2022_06_27", "adsl")
+adlb <- synthetic_cdisc_dataset("rcd_2022_06_27", "adlb")
+
+library(tern)
+adlb_labels <- var_labels(adlb)
+
+# For illustration purposes, the example focuses on ALT
+# Measurements starting from baseline and excluding all screening visits
+adlb <- subset(adlb, AVISIT != "SCREENING" & PARAMCD == "ALT")
+adlb$AVISIT <- droplevels(adlb$AVISIT)
+
+var_labels(adlb) <- adlb_labels
+
+adsl <- df_explicit_na(adsl)
+adlb <- df_explicit_na(adlb)
+
+split_fun <- drop_split_levels
+
+lyt <- basic_table() %>%
+  split_cols_by(var = "ARM") %>%
+  add_overall_col("All Patients") %>%
+  add_colcounts() %>%
+  split_rows_by(
+    var = "AVISIT",
+    split_fun = split_fun,
+    label_pos = "topleft",
+    split_label = obj_label(adlb$AVISIT)
+  ) %>%
+  summarize_vars(vars = "AVAL")
+
+result <- build_table(
+  lyt,
+  df = adlb,
+  alt_counts_df = adsl
+)
+result
+```
+
+## Other features (skipped in this presentation)
+
+-   Prunning
+-   Trimming
+-   Sorting
+-   Referential footnotes
+-   ...
+
+## Discussion
+
+- Interesting concept about data tabulation - i.e. tree-based structures.
+- This is much more that a typical _table_. It creates a complex structure and tabulates it on the raw data.
+- It covers both data wrangling and also table creation.
+- It is one of the very first comprehensive solutions for clinical reporting. It is also one of the very first open source initiative by pharma for pharma. It gave a foundation of NEST and pharmaverse.
+
+## Other tools for tables creation
+
+-   `dplyr` + `gt`
+-   ["How to Create Publication-Ready Tables in R"](https://github.com/RaymondBalise/useR2022_table_public) tutorial \@ UseR! 2022 
+(see slide 29 for a summary)
+
+## More materials / sources
+
+[package website](roche.github.io/rtables)
+
+[Introduction vignette](https://roche.github.io/rtables/articles/introduction.html)
+
+[user2020 presentation](https://www.youtube.com/watch?v=CBQzZ8ZhXLA)
+
+## Thank you!

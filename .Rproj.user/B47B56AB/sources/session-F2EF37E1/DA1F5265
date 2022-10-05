@@ -1,0 +1,32 @@
+{
+    "id": "DA1F5265",
+    "path": "~/Documents/repo/pawelru/baselr202210/slides.qmd",
+    "project_path": "slides.qmd",
+    "type": "quarto_markdown",
+    "hash": "2237207644",
+    "contents": "",
+    "dirty": false,
+    "created": 1664806260605.0,
+    "source_on_save": true,
+    "relative_order": 2,
+    "properties": {
+        "rmdVisualMode": "false",
+        "rmdVisualWrapConfigured": "true",
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "43,0",
+        "scrollLine": "33",
+        "docOutlineVisible": "1",
+        "rmdVisualCollapsedChunks": "",
+        "rmdVisualModeLocation": "7700:6698"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1664980421,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1664980421471,
+    "read_only": false,
+    "read_only_alternatives": []
+}

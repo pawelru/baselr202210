@@ -1,0 +1,27 @@
+"0","library(dplyr)
+"
+"2","
+Attaching package: ‘dplyr’
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+"
+"0","n <- 400"
+"0","set.seed(1)"
+"0","df <- tibble("
+"0","  arm = factor(sample(c(""Arm A"", ""Arm B""), n, replace = TRUE), levels = c(""Arm A"", ""Arm B"")),"
+"0","  country = factor(sample(c(""CAN"", ""USA""), n, replace = TRUE, prob = c(.55, .45)), levels = c(""CAN"", ""USA"")),"
+"0","  gender = factor(sample(c(""Female"", ""Male""), n, replace = TRUE), levels = c(""Female"", ""Male"")),"
+"0","  handed = factor(sample(c(""Left"", ""Right""), n, prob = c(.6, .4), replace = TRUE), levels = c(""Left"", ""Right"")),"
+"0","  age = rchisq(n, 30) + 10"
+"0",") %>% mutate("
+"0","  weight = 35 * rnorm(n, sd = .5) + ifelse(gender == ""Female"", 140, 180)"
+"0",")"
